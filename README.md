@@ -1,5 +1,5 @@
 # BrainBang
-BrainBang is a human-readable form of Brainf*ck. It keeps the same concept but has a dedicated syntax but is much easier to read and write.
+BrainBang is a human-readable form of Brainf*ck. It keeps the same concept but is much easier to read and write.
 
 ## Syntax
 - BrainBang has a signficant whitespace. Code in loops must be indented similar to Python
