@@ -11,10 +11,10 @@ BrainBang is a human-readable form of Brainf*ck. It keeps the same concept but h
 - dec (value): Decreases the value of the cell by one or the specified number
 - cellout: Outputs the value of the cell
 - loop: Loops the code just like in Brainf*ck
-- ent in: Reads a value from the user and enters it into the cell
+- cellin: Reads a value from the user and enters it into the cell
 
 ## Example
-```
+```brainbang
 ent 0;
 inc 1;
 loop:
