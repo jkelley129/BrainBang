@@ -1,8 +1,8 @@
 # BrainBang
-BrainBang is a human-readable form of Brainf*ck. It keeps the same concept but has a dedicated syntax and is easier to read and write.
+BrainBang is a human-readable form of Brainf*ck. It keeps the same concept but has a dedicated syntax but is much easier to read and write.
 
 ## Syntax
-- BrainBang has a signficant whitespace. Code in loops must be indented similar to python
+- BrainBang has a signficant whitespace. Code in loops must be indented similar to Python
 - All lines must end with a semicolon
 
 ## Commands
@@ -13,11 +13,6 @@ BrainBang is a human-readable form of Brainf*ck. It keeps the same concept but h
 - loop: Loops the code just like in Brainf*ck
 - cellin: Reads a value from the user and enters it into the cell
 
-## Example
-```brainbang
-ent 0;
-inc 1;
-loop:
-    cellout;
-    >;
-```
+## Examples
+Look at the examples/ folder for what code looks like
+
