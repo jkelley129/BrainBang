@@ -61,11 +61,21 @@ class BrainBangCompiler:
             
             content = line.strip()
             
-            # Ensure line ends with semicolon (except for loop declarations)
-            if content and not content.endswith(':') and not content.endswith(';'):
-                raise SyntaxError(f"Line must end with semicolon: {content}")
-            
-            processed.append((indent_level, content))
+            # Handle multi-line statements separated by semicolons
+            if ';' in content:
+                statements = content.split(';')
+                for i, stmt in enumerate(statements):
+                    stmt = stmt.strip()
+                    if stmt:  # Skip empty statements
+                        # Add semicolon back except for loop declarations
+                        if not stmt.endswith(':'):
+                            stmt += ';'
+                        processed.append((indent_level, stmt))
+            else:
+                # Single statement - ensure it ends with semicolon (except for loop declarations)
+                if content and not content.endswith(':') and not content.endswith(';'):
+                    raise SyntaxError(f"Line must end with semicolon: {content}")
+                processed.append((indent_level, content))
         
         return processed
     
@@ -88,6 +98,8 @@ class BrainBangCompiler:
             self._handle_loop(indent_level)
         elif content.startswith('ent '):
             self._handle_ent(content[4:])  # Remove 'ent '
+        elif content == 'cellin':
+            self._handle_cellin()
         elif content == 'cellout':
             self._handle_cellout()
         elif content == '<' or content == '>':
@@ -140,6 +152,11 @@ class BrainBangCompiler:
             self.output.append('+' * num)
         else:
             raise SyntaxError(f"Invalid value for ent: {value_str}")
+    
+    def _handle_cellin(self):
+        """Handle cellin statement for input."""
+        self.output.append('[-]')  # Clear current cell
+        self.output.append(',')
     
     def _handle_cellout(self):
         """Handle cellout statement for printing."""
