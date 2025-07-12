@@ -32,12 +32,12 @@ if not defined filename (
 )
 
 :: Compile the BrainBang source file
-python brainbang_compiler.py %filename%
+python compilers/brainbang_compiler.py %filename%
 
 :: Trim .bb extension to get base name
 set "cutFilename=%filename:~0,-3%"
 
 :: Conditionally run the compiled .bf file
 if "%run_compiled%"=="true" (
-    python brainfk_interpreter.py %cutFilename%.bf
+    python compilers/brainfk_interpreter.py %cutFilename%.bf
 )
