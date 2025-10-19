@@ -1,7 +1,8 @@
 # Directories and tools
 BUILD_DIR = build
+OUTPUT_DIR = dist
 SRC = src
-OUTPUT = brainbang
+OUTPUT = $(OUTPUT_DIR)/brainbang
 
 CC = gcc
 CFLAGS = -Wall -Wextra -O2
