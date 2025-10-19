@@ -47,6 +47,6 @@ int handle_clr(Compiler *compiler);
 int process_escape_sequences(const char *input, char *output);
 char *read_file(const char *filename);
 int write_file(const char *filename, const char *content);
-int compile(const char* source_file);
+int compile(const char* source_file, const char* output_file);
 
 #endif //COMPILER_H

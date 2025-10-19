@@ -15,14 +15,17 @@
 void print_help(const char *program_name) {
     printf("BrainBang - A human-readable Brainfuck compiler\n\n");
     printf("Usage:\n");
-    printf("  %s <file.bb>              Compile and run a BrainBang file\n", program_name);
-    printf("  %s compile <file.bb>      Compile only (no execution)\n", program_name);
-    printf("  %s run <file.bf>          Run a compiled Brainfuck file\n", program_name);
-    printf("  %s help                   Show this help message\n\n", program_name);
+    printf("  %s <file.bb>                    Compile and run a BrainBang file\n", program_name);
+    printf("  %s compile <file.bb> [-o <output>]  Compile only (no execution)\n", program_name);
+    printf("  %s run <file.bf>                Run a compiled Brainfuck file\n", program_name);
+    printf("  %s help                         Show this help message\n\n", program_name);
+    printf("Options:\n");
+    printf("  -o <output>   Specify output file path (default: <filename>.bf in current directory)\n\n");
     printf("Examples:\n");
-    printf("  %s program.bb             # Compile and run\n", program_name);
-    printf("  %s compile program.bb     # Compile only\n", program_name);
-    printf("  %s run program.bf         # Run compiled file\n\n", program_name);
+    printf("  %s program.bb                   # Compile and run\n", program_name);
+    printf("  %s compile program.bb           # Compile to program.bf in current directory\n", program_name);
+    printf("  %s compile program.bb -o out.bf # Compile to out.bf\n", program_name);
+    printf("  %s run program.bf               # Run compiled file\n\n", program_name);
 }
 
 // Utility: check if string ends with suffix
@@ -37,16 +40,34 @@ void remove_extension(char *dest, const char *src, const char *ext) {
     size_t len = strlen(src);
     size_t ext_len = strlen(ext);
     if (len > ext_len && strcmp(src + len - ext_len, ext) == 0) {
-        strncpy(dest, src, len - ext_len);
+        memcpy(dest, src, len - ext_len);
         dest[len - ext_len] = '\0';
     } else {
         strcpy(dest, src);  // fallback
     }
 }
 
+// Utility: extract filename from a path (cross-platform)
+void get_filename_from_path(char *dest, const char *path) {
+    const char *last_sep = strrchr(path, '/');
+    const char *last_sep_win = strrchr(path, '\\');
+
+    // Get the rightmost separator
+    if (last_sep_win && (!last_sep || last_sep_win > last_sep)) {
+        last_sep = last_sep_win;
+    }
+
+    if (last_sep) {
+        strcpy(dest, last_sep + 1);
+    } else {
+        strcpy(dest, path);
+    }
+}
+
 int main(int argc, char *argv[]) {
     const char *command = NULL;
     const char *filename = NULL;
+    const char *output_file = NULL;
 
     // --- Parse arguments ---
     if (argc < 2) {
@@ -60,10 +81,23 @@ int main(int argc, char *argv[]) {
         command = "compile";
         if (argc < 3) {
             fprintf(stderr, "Error: No file specified for compile command\n");
-            fprintf(stderr, "Usage: %s compile <file.bb>\n", argv[0]);
+            fprintf(stderr, "Usage: %s compile <file.bb> [-o <output>]\n", argv[0]);
             return 1;
         }
         filename = argv[2];
+
+        // Parse -o option for compile command
+        if (argc >= 5 && strcmp(argv[3], "-o") == 0) {
+            output_file = argv[4];
+        } else if (argc > 3 && strcmp(argv[3], "-o") != 0) {
+            fprintf(stderr, "Error: Unknown option '%s'\n", argv[3]);
+            fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
+            return 1;
+        } else if (argc > 5) {
+            fprintf(stderr, "Error: Too many arguments\n");
+            fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
+            return 1;
+        }
     } else if (strcmp(argv[1], "run") == 0) {
         command = "run";
         if (argc < 3) {
@@ -72,6 +106,12 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         filename = argv[2];
+
+        if (argc > 3) {
+            fprintf(stderr, "Error: Too many arguments\n");
+            fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
+            return 1;
+        }
     } else if (strcmp(argv[1], "help") == 0) {
         print_help(argv[0]);
         return 0;
@@ -79,15 +119,12 @@ int main(int argc, char *argv[]) {
         // No command specified, assume file is given directly
         command = "default";
         filename = argv[1];
-    }
 
-    // Check for extra arguments
-    if ((command && strcmp(command, "compile") == 0 && argc > 3) ||
-        (command && strcmp(command, "run") == 0 && argc > 3) ||
-        (command && strcmp(command, "default") == 0 && argc > 2)) {
-        fprintf(stderr, "Error: Too many arguments\n");
-        fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
-        return 1;
+        if (argc > 2) {
+            fprintf(stderr, "Error: Too many arguments\n");
+            fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
+            return 1;
+        }
     }
 
     // --- Execute based on command ---
@@ -98,7 +135,6 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        printf("Running %s...\n", filename);
         if (bf_run(filename) != 0) {
             fprintf(stderr, "Error: Failed to run %s\n", filename);
             return 1;
@@ -110,18 +146,28 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
+        // Determine output filename
+        char bf_filename[512];
+        if (output_file) {
+            // Use user-specified output file
+            snprintf(bf_filename, sizeof(bf_filename), "%s", output_file);
+        } else {
+            // Default: extract just the filename (not full path) and place in current directory
+            char just_filename[256];
+            get_filename_from_path(just_filename, filename);
+
+            char base_filename[256];
+            remove_extension(base_filename, just_filename, ".bb");
+
+            snprintf(bf_filename, sizeof(bf_filename), "%s.bf", base_filename);
+        }
+
         printf("Compiling %s...\n", filename);
-        if (compile(filename) != 0) {
+        if (compile(filename, bf_filename) != 0) {
             fprintf(stderr, "Error: Compilation failed\n");
             return 1;
         }
 
-        // Get base filename without .bb extension
-        char base_filename[256];
-        remove_extension(base_filename, filename, ".bb");
-
-        char bf_filename[256];
-        snprintf(bf_filename, sizeof(bf_filename), "%s.bf", base_filename);
         printf("Generated %s\n", bf_filename);
 
         // Run the compiled file if in default mode

@@ -465,10 +465,16 @@ char *read_file(const char *filename) {
     
     char *content = malloc(size + 1);
     if (content) {
-        fread(content, 1, size, file);
-        content[size] = '\0';
+        size_t bytes_read = fread(content, 1, size, file);
+        content[bytes_read] = '\0';
+        if (bytes_read != (size_t)size && !feof(file)) {
+            // Read error occurred
+            free(content);
+            fclose(file);
+            return NULL;
+        }
     }
-    
+
     fclose(file);
     return content;
 }
@@ -488,20 +494,20 @@ int write_file(const char *filename, const char *content) {
 }
 
 // Main function
-int compile(const char* source_file) {
+int compile(const char* source_file, const char* output_file) {
     char *source_code = read_file(source_file);
     if (!source_code) {
         printf("Error: File '%s' not found\n", source_file);
         return 1;
     }
-    
+
     Compiler *compiler = compiler_new();
     if (!compiler) {
         printf("Error: Failed to create compiler\n");
         free(source_code);
         return 1;
     }
-    
+
     char *brainfuck_code;
     if (compiler_compile(compiler, source_code, &brainfuck_code) != 0) {
         printf("Compilation failed\n");
@@ -509,17 +515,7 @@ int compile(const char* source_file) {
         free(source_code);
         return 1;
     }
-    
-    // Determine output filename
-    char output_file[256];
-    strcpy(output_file, source_file);
-    char *dot_pos = strrchr(output_file, '.');
-    if (dot_pos && strcmp(dot_pos, ".bb") == 0) {
-        strcpy(dot_pos, ".bf");
-    } else {
-        strcat(output_file, ".bf");
-    }
-    
+
     if (write_file(output_file, brainfuck_code) != 0) {
         printf("Error: Failed to write output file '%s'\n", output_file);
         free(brainfuck_code);
@@ -527,12 +523,12 @@ int compile(const char* source_file) {
         free(source_code);
         return 1;
     }
-    
-    
+
+
     // Cleanup
     free(brainfuck_code);
     compiler_free(compiler);
     free(source_code);
-    
+
     return 0;
 }
