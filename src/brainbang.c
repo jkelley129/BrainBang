@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "compiler.h"
+#include "brainfk.h"
 
 #ifdef _WIN32
     #define PATH_SEP "\\"
@@ -54,17 +56,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // --- Compile with Python compiler ---
-    char command[512];
-    snprintf(command, sizeof(command),
-             "build%sbrainbang_compiler \"%s\"",
-             PATH_SEP, filename);
-
-    int compile_status = system(command);
-    if (compile_status != 0) {
-        fprintf(stderr, "Error: Compilation failed.\n");
-        return compile_status;
-    }
+    compile(filename);
 
     // --- Get base filename without .bb extension ---
     char base_filename[256];
@@ -72,11 +64,9 @@ int main(int argc, char *argv[]) {
 
     // --- Optionally run compiled .bf file ---
     if (run_compiled) {
-        snprintf(command, sizeof(command),
-                 "build%sbrainfk \"%s.bf\"",
-                 PATH_SEP, base_filename);
-
-        return system(command);
+        char bf_filename[256];
+        snprintf(bf_filename, sizeof(bf_filename), "%s.bf", base_filename);
+        bf_run(bf_filename);
     }
 
     return 0;
