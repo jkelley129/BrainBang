@@ -11,6 +11,20 @@
     #define PATH_SEP "/"
 #endif
 
+// Print help information
+void print_help(const char *program_name) {
+    printf("BrainBang - A human-readable Brainfuck compiler\n\n");
+    printf("Usage:\n");
+    printf("  %s <file.bb>              Compile and run a BrainBang file\n", program_name);
+    printf("  %s compile <file.bb>      Compile only (no execution)\n", program_name);
+    printf("  %s run <file.bf>          Run a compiled Brainfuck file\n", program_name);
+    printf("  %s help                   Show this help message\n\n", program_name);
+    printf("Examples:\n");
+    printf("  %s program.bb             # Compile and run\n", program_name);
+    printf("  %s compile program.bb     # Compile only\n", program_name);
+    printf("  %s run program.bf         # Run compiled file\n\n", program_name);
+}
+
 // Utility: check if string ends with suffix
 int ends_with(const char *str, const char *suffix) {
     size_t len_str = strlen(str);
@@ -31,44 +45,94 @@ void remove_extension(char *dest, const char *src, const char *ext) {
 }
 
 int main(int argc, char *argv[]) {
-    bool run_compiled = true;
+    const char *command = NULL;
     const char *filename = NULL;
 
     // --- Parse arguments ---
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-c") == 0) {
-            run_compiled = false;
-        } else if (filename == NULL) {
-            filename = argv[i];
-        } else {
-            fprintf(stderr, "Unexpected argument: %s\n", argv[i]);
+    if (argc < 2) {
+        fprintf(stderr, "Error: No input specified\n");
+        fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
+        return 1;
+    }
+
+    // Check if first argument is a command or a file
+    if (strcmp(argv[1], "compile") == 0) {
+        command = "compile";
+        if (argc < 3) {
+            fprintf(stderr, "Error: No file specified for compile command\n");
+            fprintf(stderr, "Usage: %s compile <file.bb>\n", argv[0]);
+            return 1;
         }
+        filename = argv[2];
+    } else if (strcmp(argv[1], "run") == 0) {
+        command = "run";
+        if (argc < 3) {
+            fprintf(stderr, "Error: No file specified for run command\n");
+            fprintf(stderr, "Usage: %s run <file.bf>\n", argv[0]);
+            return 1;
+        }
+        filename = argv[2];
+    } else if (strcmp(argv[1], "help") == 0) {
+        print_help(argv[0]);
+        return 0;
+    } else {
+        // No command specified, assume file is given directly
+        command = "default";
+        filename = argv[1];
     }
 
-    // --- Validate input ---
-    if (filename == NULL) {
-        fprintf(stderr, "Usage: %s [-c] source.bb\n", argv[0]);
+    // Check for extra arguments
+    if ((command && strcmp(command, "compile") == 0 && argc > 3) ||
+        (command && strcmp(command, "run") == 0 && argc > 3) ||
+        (command && strcmp(command, "default") == 0 && argc > 2)) {
+        fprintf(stderr, "Error: Too many arguments\n");
+        fprintf(stderr, "Try '%s help' for more information.\n", argv[0]);
         return 1;
     }
 
-    if (!ends_with(filename, ".bb")) {
-        fprintf(stderr, "Error: source file must end with '.bb'\n");
-        return 1;
-    }
+    // --- Execute based on command ---
+    if (strcmp(command, "run") == 0) {
+        // Run only mode - expecting a .bf file
+        if (!ends_with(filename, ".bf")) {
+            fprintf(stderr, "Error: File must end with '.bf' for run command\n");
+            return 1;
+        }
 
-    compile(filename);
+        printf("Running %s...\n", filename);
+        if (bf_run(filename) != 0) {
+            fprintf(stderr, "Error: Failed to run %s\n", filename);
+            return 1;
+        }
+    } else {
+        // Compile mode or default mode - expecting a .bb file
+        if (!ends_with(filename, ".bb")) {
+            fprintf(stderr, "Error: Source file must end with '.bb'\n");
+            return 1;
+        }
 
-    // --- Get base filename without .bb extension ---
-    char base_filename[256];
-    remove_extension(base_filename, filename, ".bb");
+        printf("Compiling %s...\n", filename);
+        if (compile(filename) != 0) {
+            fprintf(stderr, "Error: Compilation failed\n");
+            return 1;
+        }
 
-    // --- Optionally run compiled .bf file ---
-    if (run_compiled) {
+        // Get base filename without .bb extension
+        char base_filename[256];
+        remove_extension(base_filename, filename, ".bb");
+
         char bf_filename[256];
         snprintf(bf_filename, sizeof(bf_filename), "%s.bf", base_filename);
-        bf_run(bf_filename);
+        printf("Generated %s\n", bf_filename);
+
+        // Run the compiled file if in default mode
+        if (strcmp(command, "default") == 0) {
+            printf("Running %s...\n", bf_filename);
+            if (bf_run(bf_filename) != 0) {
+                fprintf(stderr, "Error: Failed to run %s\n", bf_filename);
+                return 1;
+            }
+        }
     }
 
     return 0;
 }
-
